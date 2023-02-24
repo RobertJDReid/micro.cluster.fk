@@ -1,0 +1,55 @@
+---
+title: "convert"
+author: "Robert J.D. Reid, Ph.D."
+date: "2022-11-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Converting files from Volocity for use in R/Rstudio
+
+Volocity 5.5 is an old old mac-based app for microscopy that uses
+the legacy character code (Mac OS Roman = iso-8859-1) and legacy
+Mac OS carriage returns ('\r').
+These need to be converted to UTF-8 and unix line feeds ('\n').
+Most efficient way to do this is with the system commands `iconv`
+and `tr`.
+As such, this is platform-specific - works on Macs & perhaps unix/
+linux, but not on windows.
+
+
+Test of `system` command
+
+```{r eval=FALSE}
+system('ls -l data')
+```
+
+read file names and convert
+
+```{r}
+# add in checks for file existence, directory existence, directory create
+# and overwrite warning
+# turn this into a script that is sourced from the processing file
+dir_read <- "data"
+dir_write <- "data-conv"
+# build in checking for the folder
+files <- list.files(dir_read, pattern = "\\.csv")
+# quad forward slashes to make a literal escape for cmd line?
+# nice job R
+files_read <- file.path(dir_read,files) %>% str_replace_all(' ','\\\\ ')
+files_write <- file.path(dir_write,files) %>% str_replace_all(' ','\\\\ ')
+
+purrr::map2(files_read,files_write,function(x,y){
+    cmd_string <- paste0("iconv -f iso-8859-1 -t utf-8 ",
+                         x,
+                         " | tr '\r' '\n' > ",
+                         y)
+    system(cmd_string)
+})
+```
+
+
