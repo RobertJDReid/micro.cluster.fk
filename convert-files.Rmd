@@ -22,34 +22,49 @@ As such, this is platform-specific - works on Macs & perhaps unix/
 linux, but not on windows.
 
 
-Test of `system` command
-
-```{r eval=FALSE}
-system('ls -l data')
-```
-
 read file names and convert
 
+Helper function defined first to call out to system
+```{r}
+# helper function calls out to system to convert mac CR into 'NIX newlines using `tr`
+# if the original file has windows LFs this will result in 2 newline characters & blank lines
+# so there is a pipe into a second `tr` that will remove blank lines with a "squeeze" switch
+
+convert.breaks <- function(fls,dr_rd,dr_wr) {
+  files_read <- file.path(dr_rd,fls) %>% str_replace_all(' ','\\\\ ')
+  files_write <- file.path(dr_wr,fls) %>% str_replace_all(' ','\\\\ ')
+  
+  purrr::map2(files_read,files_write,function(x,y){
+    cmd_string <- paste0("iconv -f iso-8859-1 -t utf-8 ",
+                         x,
+                         " | tr '\r' '\n' | tr -s '\n' > ",
+                         y)
+    system(cmd_string)
+  })
+}
+```
+
+Then logic to check folders
+
+turn this into a function to provide folder names
 ```{r}
 # add in checks for file existence, directory existence, directory create
 # and overwrite warning
 # turn this into a script that is sourced from the processing file
 dir_read <- "data"
+files_source <- list.files(dir_read, pattern = "\\.csv")
 dir_write <- "data-conv"
-# build in checking for the folder
-files <- list.files(dir_read, pattern = "\\.csv")
-# quad forward slashes to make a literal escape for cmd line?
-# nice job R
-files_read <- file.path(dir_read,files) %>% str_replace_all(' ','\\\\ ')
-files_write <- file.path(dir_write,files) %>% str_replace_all(' ','\\\\ ')
-
-purrr::map2(files_read,files_write,function(x,y){
-    cmd_string <- paste0("iconv -f iso-8859-1 -t utf-8 ",
-                         x,
-                         " | tr '\r' '\n' > ",
-                         y)
-    system(cmd_string)
-})
+if(dir.exists(dir_write)) {
+  files_target <- list.files(dir_write, pattern = "\\.csv")
+  if(any(files_source %in% files_target)) {
+    stop ("files already in target directory")
+  } else {
+    convert.breaks(files_source,dir_read,dir_write)
+    }
+} else { # target dir doesn't exit so make it
+  dir.create(dir_write)
+  convert.breaks(files_source,dir_read,dir_write)
+}
 ```
 
 
