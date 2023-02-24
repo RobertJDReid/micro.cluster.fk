@@ -15,6 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ### Notes on dataset
 
 So Jung uses Volocity to ID fluorescent foci.
+
 An object ID function is used to mark RFP and YFP.
 A local maxima 'spot ID' function is used to ID CFP foci and object ID is used to find the whole nucleus
 
