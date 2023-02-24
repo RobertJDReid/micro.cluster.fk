@@ -1,14 +1,3 @@
----
-title: "README.md"
-author: "Robert Reid"
-date: "2023-02-24"
-output: html_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
 ## micro.cluster.fk
 
 This project is designed to assist categorization of fluorescence microscopy images based on configuration of
