@@ -61,7 +61,7 @@ if(dir.exists(dir_write)) {
   } else {
     convert.breaks(files_source,dir_read,dir_write)
     }
-} else { # target dir doesn't exit so make it
+} else { # target dir doesn't exist so make it
   dir.create(dir_write)
   convert.breaks(files_source,dir_read,dir_write)
 }
