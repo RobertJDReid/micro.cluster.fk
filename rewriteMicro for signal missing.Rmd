@@ -46,27 +46,7 @@ That markdown should be converted to a straight R script which we can `source` f
 From the converted data, load all files and concatenate
 
 ```{r readData}
-dir = 'all_data/data_candidate_classIII_conv'
-
-YFP_files = list.files(dir,pattern = "YFP.+?foci",full.names = TRUE,ignore.case = TRUE)
-
-YFP = YFP_files %>% map_dfr(~read_csv(.)) %>%
-  mutate (field = str_remove(`Item Name`," \\(registration corrected\\)")) %>%
-  separate(field, into = c("sample","field"), sep = " ") %>% # times all T0
-  replace_na(list(field="1")) %>%
-  mutate(xfp_id = paste("yfp",str_remove(Name,"Object "))) %>%
-  select(
-    sample,
-    #time,
-    field,
-    xfp_id,
-    cenX = `Centroid X (µm)`,
-    cenY = `Centroid Y (µm)`,
-    cenZ = `Centroid Z (µm)`,
-    signal_vol = `Volume (µm3)`,
-    signal_intensity = `Sum (YFP)`,
-    signal_mean = `Mean (YFP)`
-  )
+dir = 'all_data/data_classII_conv'
 
 RFP_files = list.files(dir,pattern = "RFP.+?foci",full.names = TRUE,ignore.case = TRUE)
 
@@ -143,7 +123,7 @@ Right now there are no filters implemented, but this is where they would be run 
 # RFP = RFP %>%    # not very "functional", but the Gods of lambda calculus are all dead now
 #   filter(signal_mean > RFP_low_mean_cutoff)
 
-full_data = bind_rows(YFP,RFP,CFP,CFP_nuclei)
+full_data = bind_rows(RFP,CFP,CFP_nuclei)
 
 #*** candidate for saving or combining into a large data object
 ```
@@ -152,7 +132,7 @@ Split data by sample(colony) and field(micro image), cluster by position and sav
 
 ```{r clusters}
 data_list = full_data %>%
-  select(-signal_vol,-signal_intensity,-signal_mean) %>%
+  select(-signal_vol,-signal_intensity,-signal_mean, -surface_area) %>%
   split(~.$sample + .$field,drop = TRUE) %>%
   map(select,-sample:-field) %>%
   map(remove_rownames) %>%
@@ -161,8 +141,7 @@ data_list = full_data %>%
 dist_list = map(data_list,dist)
 clust_list = map(dist_list,hclust,"complete")
 
-color_set = c(rfp = "red", cfp = "blue",
-               yfp = "yellow", nuc = "grey")
+color_set = c(rfp = "red", cfp = "blue", nuc = "grey")
 
 dend_list = map(clust_list,as.dendrogram)
 dend_list = map(dend_list,set,"leaves_pch",19) # filled circles
@@ -298,7 +277,7 @@ cluster_pos <- cluster_df %>%
 inbound_nuclei <- cluster_df %>%
   filter(str_detect(xfp_id,"nucleus")) %>%
   left_join(full_data) %>%
-  filter(cenZ >= 0.5 & cenZ <= 4.5) %>%  #filter(cenZ >= 1.5 & cenZ <= 3.3) %>%
+  filter(cenZ >= 1.5 & cenZ <= 3.3) %>%
   filter(cenX >= 1.5 & cenX <= 85) %>%
   filter(cenY >= 1.5 & cenY <= 64) %>%
   select(sample,field,cluster_number) %>%
@@ -317,7 +296,6 @@ inbound_nuclei <- cluster_df %>%
 
 RYdf <- map(cluster_set_dist,function(m) {
 
-  y <- grep("yf",rownames(m),value = TRUE)
   r <- grep("rf",rownames(m),value = TRUE)
   c <- grep("cf",colnames(m),value = TRUE)
 
@@ -327,20 +305,16 @@ RYdf <- map(cluster_set_dist,function(m) {
   # this also is only looking for a minimum
   # it is not implementing a static cutoff value
 
-  if (length(y)+length(r)+length(c) > 3 |
-      length(y)+length(r)+length(c) < 2) {
-    rval <- c(NA,NA,NA)
-    names(rval) <- c("ry","cy","cr")
+  if (length(r)+length(c) > 2 |
+      length(r)+length(c) < 1) {
+    rval <- c(NA)
+    names(rval) <- c("cr")
     return(rval)
   } else {
-    if(is_empty(r) | is_empty(y)) ry=NA
-    else ry = min(m[r,y])
-    if(is_empty(c) | is_empty(y)) cy=NA
-    else cy = min(m[c,y])
     if(is_empty(c) | is_empty(r)) cr=NA
     else cr = min(m[c,r])
-    rval <- c(ry,cy,cr)
-    names(rval) <- c("ry","cy","cr")
+    rval <- c(cr)
+    names(rval) <- c("cr")
     return(rval)
   }
 }) %>%
@@ -348,7 +322,7 @@ RYdf <- map(cluster_set_dist,function(m) {
   t() %>%
   as.data.frame() %>%
   rownames_to_column("sample.field.group") %>%
-  rename(c("ry"=V1,"cy"=V2,"cr"=V3)) %>%
+  rename(c("cr"=V1)) %>%
   separate(col=sample.field.group,into = c("sample","field","cluster_number"),sep = "\\.") %>%
   mutate(cluster_number = as.integer(cluster_number))
 
@@ -377,16 +351,14 @@ table_one <- final_df %>%
   arrange(as.numeric(str_remove(sample,"c")),desc(n)) %>%
   ungroup()
 
-table_two <- final_df %>%
-  filter(signal_code == "cfp nuc rfp yfp") %>%
-  mutate(coloc = case_when(
-    (ry < cy) & (ry < cr) ~ "ry",
-    (cy < ry) & (cy < cr) ~ "cy",
-    (cr < cy) & (cr < ry) ~ "cr",
-  )) %>%
-  group_by(sample) %>%
-  count(coloc) %>%
-  arrange(as.numeric(str_remove(sample,"c")),desc(n))
+#table_two <- final_df %>%
+#  filter(signal_code == "cfp nuc rfp") %>%
+#  mutate(coloc = case_when(
+#    (cr < cy) & (cr < ry) ~ "cr",
+#  )) %>%
+#  group_by(sample) %>%
+#  count(coloc) %>%
+#  arrange(as.numeric(str_remove(sample,"c")),desc(n))
 
 
 signal_codes <- table_one %>%
@@ -401,14 +373,14 @@ signal_codes <- table_one %>%
   column_to_rownames(var = "sample")
 
 
-library(kableExtra)
-kbl(table_one,
-    col.names = c("Sample","Signals","n"),
-    align = c('c','c','c'))
+#library(kableExtra)
+#kbl(table_one,
+#    col.names = c("Sample","Signals","n"),
+#    align = c('c','c','c'))
 
-kbl(table_two,
-    col.names = c("Sample "," co-localized ","n"),
-    align = c('c','c','c'))
+#kbl(table_two,
+#    col.names = c("Sample "," co-localized ","n"),
+#    align = c('c','c','c'))
 ```
 
 Now we can present the signals graphically for the whole set
@@ -434,7 +406,7 @@ signal_classes %>%
   geom_point(position = "jitter") +
   #geom_text(aes(label=cluster_number),position = "jitter") +
   theme(axis.text.x = element_text(angle = 45,hjust = 1)) +
-  scale_color_manual(values=c("deepskyblue","grey","tomato","gold")) +
+  scale_color_manual(values=c("deepskyblue","grey","tomato")) +
   facet_grid(str_extract(xfp_id,"[:alpha:]+") ~ .) +
   theme(legend.title = element_blank())
 

@@ -46,26 +46,37 @@ That markdown should be converted to a straight R script which we can `source` f
 From the converted data, load all files and concatenate
 
 ```{r readData}
-dir = 'all_data/data_candidate_classIII_conv'
+#dir = "~/Documents/GIT/micro.cluster.fk/Fiji/data/"
 
-YFP_files = list.files(dir,pattern = "YFP.+?foci",full.names = TRUE,ignore.case = TRUE)
+#YFP_files = list.files(dir,pattern = "YFP.+?foci",full.names = TRUE,ignore.case = TRUE)
+
+#YFP_files <- list.files(pattern = "YFP.+?foci",full.names = TRUE,ignore.case = TRUE)
+
+#YFP_files <- read.csv("YFP_base6.csv")
+
+YFP_files_q <- read.csv("~/Documents/GIT/micro.cluster.fk/Fiji/data1-conv/YFP_base6_q.csv")
+YFP_files_m <- read.csv("~/Documents/GIT/micro.cluster.fk/Fiji/data1-conv/YFP_base6_m.csv")
+YFP_files <- merge(YFP_files_q, YFP_files_m, by = 'Name')
+
+i <- 0
 
 YFP = YFP_files %>% map_dfr(~read_csv(.)) %>%
-  mutate (field = str_remove(`Item Name`," \\(registration corrected\\)")) %>%
-  separate(field, into = c("sample","field"), sep = " ") %>% # times all T0
-  replace_na(list(field="1")) %>%
-  mutate(xfp_id = paste("yfp",str_remove(Name,"Object "))) %>%
+  rename(Nb = Sample) %>%
+  mutate(Field = Label.x) %>%
+  Sample = 'c1' %>%
+  mutate(Field = case_when((Label.x == 1) ~ i+1,
+         (Label.x > 1) ~ i)) %>%
+  transmute(yfp_id = paste("yfp", Label.x)) %>%
   select(
     sample,
-    #time,
     field,
     xfp_id,
-    cenX = `Centroid X (µm)`,
-    cenY = `Centroid Y (µm)`,
-    cenZ = `Centroid Z (µm)`,
-    signal_vol = `Volume (µm3)`,
-    signal_intensity = `Sum (YFP)`,
-    signal_mean = `Mean (YFP)`
+    cenX = `CX..unit`,
+    cenY = `CY..unit`,
+    cenZ = `CZ..unit`,
+    signal_vol = `Vol..unit`,
+    signal_intensity = `IntDen`,
+    signal_mean = `Mean`
   )
 
 RFP_files = list.files(dir,pattern = "RFP.+?foci",full.names = TRUE,ignore.case = TRUE)

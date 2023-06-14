@@ -46,13 +46,13 @@ That markdown should be converted to a straight R script which we can `source` f
 From the converted data, load all files and concatenate
 
 ```{r readData}
-dir = 'all_data/data_candidate_classIII_conv'
+dir = 'all_data/data-conv'
 
 YFP_files = list.files(dir,pattern = "YFP.+?foci",full.names = TRUE,ignore.case = TRUE)
 
 YFP = YFP_files %>% map_dfr(~read_csv(.)) %>%
   mutate (field = str_remove(`Item Name`," \\(registration corrected\\)")) %>%
-  separate(field, into = c("sample","field"), sep = " ") %>% # times all T0
+  separate(field, into = c("sample","time","field"), sep = " ") %>% # times all T0
   replace_na(list(field="1")) %>%
   mutate(xfp_id = paste("yfp",str_remove(Name,"Object "))) %>%
   select(
@@ -72,7 +72,7 @@ RFP_files = list.files(dir,pattern = "RFP.+?foci",full.names = TRUE,ignore.case 
 
 RFP = RFP_files %>% map_dfr(~read_csv(.)) %>%
   mutate (field = str_remove(`Item Name`," \\(registration corrected\\)")) %>%
-  separate(field, into = c("sample","field"), sep = " ") %>%
+  separate(field, into = c("sample","time","field"), sep = " ") %>%
   replace_na(list(field="1")) %>%
   mutate(xfp_id = paste("rfp",str_remove(Name,"Object "))) %>%
   select(
@@ -92,7 +92,7 @@ CFP_nuc_files = list.files(dir, pattern = "CFP.+?nuclei", full.names = TRUE, ign
 
 CFP_nuclei = CFP_nuc_files %>% map_dfr(~read_csv(.)) %>%
   mutate (field = str_remove(`Item Name`," \\(registration corrected\\)")) %>%
-  separate(field, into = c("sample","field"), sep = " ") %>%
+  separate(field, into = c("sample","time","field"), sep = " ") %>%
   replace_na(list(field="1")) %>%
   mutate(xfp_id = paste("nucleus",str_remove(Name,"Object "))) %>%
   select(
@@ -104,8 +104,6 @@ CFP_nuclei = CFP_nuc_files %>% map_dfr(~read_csv(.)) %>%
     cenY = `Centroid Y (µm)`,
     cenZ = `Centroid Z (µm)`,
     signal_vol = `Volume (µm3)`,
-    surface_area = `Surface Area`,
-    surface = `Surface Area (µm2)`,
     signal_intensity = `Sum (CFP)`,
     signal_mean = `Mean (CFP)`
 
@@ -115,7 +113,7 @@ CFP_spot_files = list.files(dir, pattern = "CFP.+?foci", full.names = TRUE, igno
 
 CFP = CFP_spot_files %>% map_dfr(~read_csv(.)) %>%
   mutate (field = str_remove(`Item Name`," \\(registration corrected\\)")) %>%
-  separate(field, into = c("sample","field"), sep = " ") %>%
+  separate(field, into = c("sample","time","field"), sep = " ") %>%
   replace_na(list(field="1")) %>%
   #mutate(xfp_id = paste("cfp",str_remove(Name,"Point "))) %>%
   mutate(xfp_id = paste("cfp",str_remove(Name,"Point ")),
@@ -298,7 +296,7 @@ cluster_pos <- cluster_df %>%
 inbound_nuclei <- cluster_df %>%
   filter(str_detect(xfp_id,"nucleus")) %>%
   left_join(full_data) %>%
-  filter(cenZ >= 0.5 & cenZ <= 4.5) %>%  #filter(cenZ >= 1.5 & cenZ <= 3.3) %>%
+  filter(cenZ >= 1.5 & cenZ <= 3.3) %>%
   filter(cenX >= 1.5 & cenX <= 85) %>%
   filter(cenY >= 1.5 & cenY <= 64) %>%
   select(sample,field,cluster_number) %>%
@@ -437,5 +435,4 @@ signal_classes %>%
   scale_color_manual(values=c("deepskyblue","grey","tomato","gold")) +
   facet_grid(str_extract(xfp_id,"[:alpha:]+") ~ .) +
   theme(legend.title = element_blank())
-
 ```
