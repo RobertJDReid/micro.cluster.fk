@@ -1,7 +1,8 @@
 #####################################
 # Final decision tree
 
-final_dfs <- final_df[which(final_df$sample =='c11'), ]
+final_dfs <- final_df[which(final_df$sample =='c127'), ]
+final_dfs <- final_df
 
 final_dfs <- final_dfs %>% mutate(decision = case_when((final_dfs$signal_code ==  "nuc yfp") ~ 'only YFP',
                                             (final_dfs$signal_code ==  "nuc rfp") ~ 'only RFP',
@@ -44,7 +45,7 @@ decision_tree_result[15,2] <- nrow(final_df[which(final_dfs$decision =='All 3 cl
 decision_tree_result[16,2] <- nrow(final_df[which(final_dfs$decision =='All 3 separated'), ])
 decision_tree_result[17,2] <- nrow(final_df[which(final_dfs$decision =='unknow'), ])
 
-
+nrow(final_dfs)
 
 
 

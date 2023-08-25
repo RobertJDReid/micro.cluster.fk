@@ -46,7 +46,7 @@ That markdown should be converted to a straight R script which we can `source` f
 From the converted data, load all files and concatenate
 
 ```{r readData}
-dir = 'all_data/data_candidate_classIII_conv'
+dir = 'all_data/data_uncut_conv'
 
 YFP_files = list.files(dir,pattern = "YFP.+?foci",full.names = TRUE,ignore.case = TRUE)
 

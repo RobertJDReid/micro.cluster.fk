@@ -47,11 +47,8 @@ From the converted data, load all files and concatenate
 
 ```{r readData}
 #dir = "~/Documents/GIT/micro.cluster.fk/Fiji/data/"
-
 #YFP_files = list.files(dir,pattern = "YFP.+?foci",full.names = TRUE,ignore.case = TRUE)
-
 #YFP_files <- list.files(pattern = "YFP.+?foci",full.names = TRUE,ignore.case = TRUE)
-
 #YFP_files <- read.csv("YFP_base6.csv")
 
 YFP_files_q <- read.csv("~/Documents/GIT/micro.cluster.fk/Fiji/data1-conv/YFP_base6_q.csv")
@@ -61,12 +58,12 @@ YFP_files <- merge(YFP_files_q, YFP_files_m, by = 'Name')
 i <- 0
 
 YFP = YFP_files %>% map_dfr(~read_csv(.)) %>%
-  rename(Nb = Sample) %>%
+  rename(Nb.x = Sample) %>%
   mutate(Field = Label.x) %>%
-  Sample = 'c1' %>%
-  mutate(Field = case_when((Label.x == 1) ~ i+1,
-         (Label.x > 1) ~ i)) %>%
-  transmute(yfp_id = paste("yfp", Label.x)) %>%
+  (Sample = 'c1') %>%
+  #mutate(Field = case_when((Label.x == 1) ~ i+1,
+  #       (Label.x != 1) ~ i)) %>%
+  mutate(xfp_id = paste("yfp", Label.x)) %>%
   select(
     sample,
     field,

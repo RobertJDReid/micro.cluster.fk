@@ -51,9 +51,9 @@ turn this into a function to provide folder names
 # add in checks for file existence, directory existence, directory create
 # and overwrite warning
 # turn this into a script that is sourced from the processing file
-dir_read <- "data"
+dir_read <- "c151-180"
 files_source <- list.files(dir_read, pattern = "\\.csv")
-dir_write <- "data-conv"
+dir_write <- "c151-180_conv"
 if(dir.exists(dir_write)) {
   files_target <- list.files(dir_write, pattern = "\\.csv")
   if(any(files_source %in% files_target)) {
